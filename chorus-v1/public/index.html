@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chorus V1</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #0f1220; color: #e8ecff; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
+    textarea { width: 100%; min-height: 96px; padding: 12px; border-radius: 10px; border: 1px solid #39405f; background: #171b2e; color: #fff; }
+    button { margin-top: 12px; padding: 12px 18px; border: 0; border-radius: 10px; background: #6d79ff; color: #fff; font-weight: bold; cursor: pointer; }
+    .card { background: #171b2e; border: 1px solid #2b3250; border-radius: 14px; padding: 16px; margin-top: 18px; }
+    .muted { color: #aeb6de; }
+    ul { margin-top: 8px; }
+    code { background: #101425; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Chorus V1</h1>
+    <p class="muted">Private prototype: Finder → Judge → Critic</p>
+    <textarea id="query">Find me the best hotel in Manchester under £120</textarea>
+    <br>
+    <button id="run">Run Chorus</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById('run');
+    const queryEl = document.getElementById('query');
+    const resultEl = document.getElementById('result');
+
+    runBtn.addEventListener('click', async () => {
+      resultEl.innerHTML = '<div class="card">Thinking…</div>';
+      const response = await fetch('/chorus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryEl.value })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        resultEl.innerHTML = `<div class="card"><b>Error:</b> ${data.error}</div>`;
+        return;
+      }
+
+      resultEl.innerHTML = `
+        <div class="card">
+          <h2>Best option</h2>
+          <p><b>${data.best.name}</b> — ${data.best.price_display} — rating ${data.best.rating}/10</p>
+          <p class="muted">Official: ${data.best.official ? 'Yes' : 'No'} | Refundable: ${data.best.refundable ? 'Yes' : 'No'} | Confidence: ${data.confidence}</p>
+          <h3>Judge</h3>
+          <ul>${data.judge_reasoning.map(x => `<li>${x}</li>`).join('')}</ul>
+          <h3>Critic</h3>
+          <ul>${data.critic_caveats.map(x => `<li>${x}</li>`).join('')}</ul>
+          <h3>Alternatives</h3>
+          <ul>${data.alternatives.map(x => `<li><b>${x.name}</b> — ${x.price_display} — rating ${x.rating}/10</li>`).join('')}</ul>
+        </div>
+      `;
+    });
+  </script>
+</body>
+</html>
