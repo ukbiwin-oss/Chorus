@@ -3,9 +3,12 @@ const path = require("path");
 const { runChorus } = require("./lib/orchestrator");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "127.0.0.1";
+const MAX_QUERY_LENGTH = 1000;
 
-app.use(express.json({ limit: "1mb" }));
+app.disable("x-powered-by");
+app.use(express.json({ limit: "16kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/health", (_req, res) => {
@@ -23,17 +26,23 @@ app.post("/chorus", (req, res) => {
       });
     }
 
+    if (query.length > MAX_QUERY_LENGTH) {
+      return res.status(413).json({
+        error: "Query too long",
+        maximum_characters: MAX_QUERY_LENGTH
+      });
+    }
+
     const result = runChorus(query);
     return res.json(result);
   } catch (error) {
     console.error("/chorus failed:", error);
     return res.status(500).json({
-      error: "Internal server error",
-      detail: error.message
+      error: "Internal server error"
     });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Chorus V1 listening on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Chorus V1 listening on http://${HOST}:${PORT}`);
 });
